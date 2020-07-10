@@ -5,11 +5,11 @@ const Schema = mongoose.Schema;
 const bookingSchema = new Schema(
   {
     event: {
-      type: Schema.type.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Event",
     },
     user: {
-      type: Schema.type.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
     },
   },
