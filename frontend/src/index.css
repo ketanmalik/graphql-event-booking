@@ -3,3 +3,24 @@ body {
   padding: 0;
   font-family: sans-serif;
 }
+
+.form-actions button,
+.btn {
+  background: #01d1d1;
+  font: inherit;
+  border: 1px solid #01d1d1;
+  border-radius: 5px;
+  padding: 0.25rem 1rem;
+  margin-right: 1rem;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.26);
+  color: rgb(58, 53, 53);
+  cursor: pointer;
+}
+
+.form-actions button:hover,
+.form-actions button:active,
+.btn:hover,
+.btn:active {
+  background-color: #068f8fa9;
+  border-color: #068f8fa9;
+}
