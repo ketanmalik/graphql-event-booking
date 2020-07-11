@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import AuthContext from "../context/auth-context";
 import "./Auth.css";
 
 class AuthPage extends Component {
@@ -6,11 +7,14 @@ class AuthPage extends Component {
     isLogin: true,
   };
 
+  static contextType = AuthContext;
+
   constructor(props) {
     super(props);
     this.emailElem = React.createRef();
     this.passwordElem = React.createRef();
   }
+
   submitHandler = (event) => {
     event.preventDefault();
     const email = this.emailElem.current.value;
@@ -58,7 +62,15 @@ class AuthPage extends Component {
         }
         return res.json();
       })
-      .then((resData) => console.log(resData))
+      .then((resData) => {
+        if (resData.data.login.token) {
+          this.context.login(
+            resData.data.login.token,
+            resData.data.login.userId,
+            resData.data.login.tokenExpiration
+          );
+        }
+      })
       .catch((err) => {
         console.log(err);
       });
