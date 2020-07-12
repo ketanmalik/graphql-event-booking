@@ -2,13 +2,19 @@ import React, { Component } from "react";
 import Modal from "../components/Modal/Modal";
 import Backdrop from "../components/Backdrop/Backdrop";
 import AuthContext from "../context/auth-context";
+import EventList from "../components/Events/EventList/EventList";
+import Spinner from "../components/Spinner/Spinner";
 import "./Events.css";
 
 class EventsPage extends Component {
   state = {
     creating: false,
     events: [],
+    isLoading: false,
+    selectedEvent: null,
   };
+
+  isActive = true;
 
   static contextType = AuthContext;
 
@@ -25,6 +31,7 @@ class EventsPage extends Component {
   }
 
   fetchEvents = () => {
+    this.setState({ isLoading: true });
     const requestBody = {
       query: `
             query {
@@ -35,6 +42,7 @@ class EventsPage extends Component {
                     date
                     price
                     creator{
+                        _id
                         email
                         password
                     }
@@ -58,9 +66,14 @@ class EventsPage extends Component {
       })
       .then((resData) => {
         let events = resData.data.events;
-        this.setState({ events: events });
+        if (this.isActive) {
+          this.setState({ events: events, isLoading: false });
+        }
       })
       .catch((err) => {
+        if (this.isActive) {
+          this.setState({ isLoading: false });
+        }
         throw err;
       });
   };
@@ -70,6 +83,10 @@ class EventsPage extends Component {
   };
 
   modalConfrimHandler = () => {
+    if (!this.state.token) {
+      this.setState({ selectedEvent: null });
+      return;
+    }
     const title = this.titleElem.current.value;
     const price = +this.priceElem.current.value;
     const date = this.dateElem.current.value;
@@ -95,10 +112,6 @@ class EventsPage extends Component {
                     description
                     date
                     price
-                    creator{
-                        _id
-                        email
-                    }
                 }
             }
           `,
@@ -121,7 +134,14 @@ class EventsPage extends Component {
         return res.json();
       })
       .then((resData) => {
-        this.fetchEvents();
+        this.setState(
+          (prevState) => {
+            let singleEvent = resData.data.createEvent;
+            singleEvent["creator"] = { _id: this.context.userId };
+            return { events: [...prevState.events, singleEvent] };
+          },
+          () => console.log(this.state.events)
+        );
       })
       .catch((err) => {
         console.log(err);
@@ -129,21 +149,64 @@ class EventsPage extends Component {
 
     this.setState({ creating: false });
   };
+
   modalCancelHandler = () => {
-    this.setState({ creating: false });
+    this.setState({ creating: false, selectedEvent: null });
   };
 
-  render() {
-    let eventsList = this.state.events.map((event) => {
-      return (
-        <li key={event._id} className="events__list-item">
-          {event.title}
-        </li>
-      );
+  showDetailHandler = (eventId) => {
+    this.setState((prevState) => {
+      const selectedEvent = prevState.events.find((e) => e._id === eventId);
+      return { selectedEvent: selectedEvent };
     });
+  };
+
+  bookEventHandler = () => {
+    const requestBody = {
+      query: `
+        mutation {
+            bookEvent(eventId: "${this.state.selectedEvent._id}"){
+                _id
+                createdAt
+                updatedAt
+            }
+        }
+        `,
+    };
+    const token = this.context.token;
+    fetch("http://localhost:8000/graphql", {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+    })
+      .then((res) => {
+        if (res.status !== 200 && res.data !== 201) {
+          console.log("Failed!");
+          return;
+        }
+        return res.json();
+      })
+      .then((resData) => {
+        this.setState({ selectedEvent: null });
+        console.log(resData);
+      })
+      .catch((err) => {
+        this.setState({ selectedEvent: null });
+        throw err;
+      });
+  };
+
+  componentWillUnmount() {
+    this.isActive = false;
+  }
+
+  render() {
     return (
       <React.Fragment>
-        {this.state.creating && <Backdrop />}
+        {(this.state.creating || this.state.selectedEvent) && <Backdrop />}
         {this.state.creating && (
           <Modal
             title="Add Event"
@@ -151,6 +214,7 @@ class EventsPage extends Component {
             canCancel
             onConfirm={this.modalConfrimHandler}
             onCancel={this.modalCancelHandler}
+            confirmText="Confirm"
           >
             <form>
               <div className="form-control">
@@ -177,6 +241,23 @@ class EventsPage extends Component {
             </form>
           </Modal>
         )}
+        {this.state.selectedEvent && (
+          <Modal
+            title={this.state.selectedEvent.title}
+            canConfirm
+            canCancel
+            onConfirm={this.bookEventHandler}
+            onCancel={this.modalCancelHandler}
+            confirmText={this.context.token ? "Book Event" : "Confirm"}
+          >
+            <h1>{this.state.selectedEvent.title}</h1>
+            <h2>
+              ${this.state.selectedEvent.price} -{" "}
+              {new Date(this.state.selectedEvent.date).toLocaleDateString()}
+            </h2>
+            <p>{this.state.selectedEvent.description}</p>
+          </Modal>
+        )}
         {this.context.token && (
           <div className="events-control">
             <p>Share your own Events!</p>
@@ -185,7 +266,15 @@ class EventsPage extends Component {
             </button>
           </div>
         )}
-        <section className="events__list">{eventsList}</section>
+        {this.state.isLoading ? (
+          <Spinner />
+        ) : (
+          <EventList
+            events={this.state.events}
+            authUserId={this.context.userId}
+            onViewDetail={this.showDetailHandler}
+          />
+        )}
       </React.Fragment>
     );
   }
