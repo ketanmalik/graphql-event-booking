@@ -2,6 +2,7 @@ import React from "react";
 import "./BookingList.css";
 
 const bookingList = (props) => {
+  console.log(props);
   return (
     <ul className="bookings__list">
       {props.bookings.map((booking) => {
@@ -9,7 +10,7 @@ const bookingList = (props) => {
           <li key={booking._id} className="bookings__item" key={booking._id}>
             <div className="bookings__item-data">
               {booking.event.title} -
-              {new Date(booking.event.createAt).toLocaleDateString()}
+              {new Date(booking.createdAt).toLocaleDateString()}
             </div>
             <div className="bookings__item-control">
               <button
