@@ -48,6 +48,7 @@ class BookingsPage extends Component {
         return res.json();
       })
       .then((resData) => {
+        console.log(resData);
         let bookings = resData.data.bookings;
         this.setState({ bookings: bookings, isLoading: false });
       })
