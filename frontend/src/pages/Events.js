@@ -83,7 +83,7 @@ class EventsPage extends Component {
   };
 
   modalConfrimHandler = () => {
-    if (!this.state.token) {
+    if (!this.context.token) {
       this.setState({ selectedEvent: null });
       return;
     }
